@@ -18,6 +18,8 @@ Function Remove-DNSEntryFromZone
 	process {
 		Write-Verbose "Check for existing DNS record(s) in $ZoneName"
 		$NodeARecord = Get-DnsServerResourceRecord -ZoneName $ZoneName -ComputerName $DNSServer -Node $Computer -RRType A -ErrorAction SilentlyContinue
+		$NodeARecord
+		
 		
 		if($NodeARecord -eq $null){
 			Write-Verbose "No A record found"
@@ -36,7 +38,7 @@ Function Remove-DNSEntryFromZone
 				$ReverseZoneStub = ($IPAddressArray[1] + "." + $IPAddressArray[0] + ".in-addr.arpa")
 				$ReverseZoneNames = @(Get-DnsServerZone -ComputerName $DNSServer | ? { $_.ZoneName -match $ReverseZoneStub -and $_.IsReverseLookupZone -and -NOT($_.ZoneType -eq "Forwarder") } | select-object -expandproperty ZoneName)
 			}
-			
+			Start-Sleep 2
 			ForEach ( $ReverseZoneName in $ReverseZoneNames ) {
 				# Now, determine the subnet mask of the reverse zone, so we can search for the reverse based on the correct number of octets
 				$ReverseTrunc = $ReverseZoneName.Replace(".in-addr.arpa","")
@@ -61,6 +63,14 @@ Function Remove-DNSEntryFromZone
 			}
 			Remove-DnsServerResourceRecord -ZoneName $ZoneName -ComputerName $DNSServer -InputObject $NodeARecord -Force
 			Write-Host ("A record deleted: " + $NodeARecord.HostName)
+		}
+		
+		Write-Verbose "Check for existing CNAME record(s) in $ZoneName"
+		$CNAMERecord = Get-DnsServerResourceRecord -ZoneName $ZoneName -ComputerName $DNSServer -Node $Computer -RRType CName -ErrorAction SilentlyContinue
+		if ( $CNAMERecord -ne $null ) {
+			$CNAMERecord
+			Remove-DnsServerResourceRecord -ZoneName $ZoneName -ComputerName $DNSServer -InputObject $NodeARecord -Force
+			Write-Host ("CNAME record deleted: " + $CNAMERecord.HostName)
 		}
 	}
 	end {
