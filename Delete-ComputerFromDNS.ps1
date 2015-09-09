@@ -38,7 +38,7 @@ Function Remove-DNSEntryFromZone
 				$ReverseZoneStub = ($IPAddressArray[1] + "." + $IPAddressArray[0] + ".in-addr.arpa")
 				$ReverseZoneNames = @(Get-DnsServerZone -ComputerName $DNSServer | ? { $_.ZoneName -match $ReverseZoneStub -and $_.IsReverseLookupZone -and -NOT($_.ZoneType -eq "Forwarder") } | select-object -expandproperty ZoneName)
 			}
-			Start-Sleep 2
+			
 			ForEach ( $ReverseZoneName in $ReverseZoneNames ) {
 				# Now, determine the subnet mask of the reverse zone, so we can search for the reverse based on the correct number of octets
 				$ReverseTrunc = $ReverseZoneName.Replace(".in-addr.arpa","")
