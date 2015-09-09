@@ -55,11 +55,11 @@ Function Remove-DNSEntryFromZone
 				if($NodePTRRecord -eq $null){
 					Write-Verbose "No PTR record found"
 				} else {
-					# Remove-DnsServerResourceRecord -ZoneName $ReverseZoneName -ComputerName $DNSServer -InputObject $NodePTRRecord -Force
+					Remove-DnsServerResourceRecord -ZoneName $ReverseZoneName -ComputerName $DNSServer -InputObject $NodePTRRecord -Force
 					Write-Host ("PTR record deleted: " + $IPAddressFormatted + " in " + $ReverseZoneName)
 				}
 			}
-			# Remove-DnsServerResourceRecord -ZoneName $ZoneName -ComputerName $DNSServer -InputObject $NodeARecord -Force
+			Remove-DnsServerResourceRecord -ZoneName $ZoneName -ComputerName $DNSServer -InputObject $NodeARecord -Force
 			Write-Host ("A record deleted: " + $NodeARecord.HostName)
 		}
 	}
