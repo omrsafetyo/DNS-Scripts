@@ -31,15 +31,10 @@ Function Get-WmiDNSZone  {
 	
 		$ZoneInfo = Invoke-Command @param
 		
-		#-Computername $Computername -Credential $Credential -ScriptBlock {
-		#	Get-WmiObject -Namespace root\MicrosoftDNS -Class MicrosoftDNS_Zone
-		#}
-		
 		if ( $PSBoundParameters.ContainsKey("ZoneName") ) {
 			$ZoneInfo = $ZoneInfo | Where-Object {$ZoneName -contains $_.Name}
 		}
 		
-		# $ZoneInfo
 		switch($ZoneInfo.ZoneType) {
 			1 {$ZoneType = "Primary"}
 			2 {$ZoneType = "Secondary"}
@@ -87,7 +82,7 @@ Function Get-WmiDNSZone  {
 }
 
 
-Function Get-WmiDNSResourceRecord  {
+Function Get-WmiDNSResourceRecordSet  {
 	PARAM (
 		[Parameter()]
 		[string]
@@ -119,7 +114,6 @@ Function Get-WmiDNSResourceRecord  {
 		if ( $PSBoundParameters.ContainsKey("ZoneName") ) {
 			$WmiQuery = '{0} -Filter "ContainerName = {2}{1}{2}"' -f $WmiQuery, $ZoneName, "'"
 		}
-		Write-Host $WmiQuery
 		
 		$ScriptBlock = [scriptBlock]::Create($WmiQuery)
 		$param = @{}
@@ -129,7 +123,6 @@ Function Get-WmiDNSResourceRecord  {
 		}
 		$param.Add("ScriptBlock",$ScriptBlock)
 		
-		$Param
 		$ResourceRecordSet = Invoke-Command @param
 		
 		ForEach ($ResourceRecord in $ResourceRecordSet) {
