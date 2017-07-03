@@ -1,3 +1,5 @@
+#requires -version 3.0
+
 Function Get-WmiDNSZone  {
 	PARAM (
 		[Parameter()]
@@ -23,30 +25,38 @@ Function Get-WmiDNSZone  {
 		$param = @{}
 		ForEach ($Parameter in $PSBoundParameters.Keys) {
 			if ( $Parameter -eq "ZoneName" ) {continue}
-			$param.Add($Parameter,$PSBoundParameters.Item($Parameter))
+			[void]$param.Add($Parameter,$PSBoundParameters.Item($Parameter))
 		}
 		
 		$ScriptBlock = [scriptblock]::Create("Get-WmiObject -Namespace root\MicrosoftDNS -Class MicrosoftDNS_Zone")
-		$param.Add("ScriptBlock",$ScriptBlock)
+		[void]$param.Add("ScriptBlock",$ScriptBlock)
 	
 		$ZoneInfo = Invoke-Command @param
 		
 		if ( $PSBoundParameters.ContainsKey("ZoneName") ) {
 			$ZoneInfo = $ZoneInfo | Where-Object {$ZoneName -contains $_.Name}
 		}
-		
+		# https://msdn.microsoft.com/en-us/library/windows/desktop/ms682757(v=vs.85).aspx
 		switch($ZoneInfo.ZoneType) {
+			0 {$ZoneType = "Integrated"}
 			1 {$ZoneType = "Primary"}
 			2 {$ZoneType = "Secondary"}
+			3 {$ZoneType = "Stub"}
+			3 {$ZoneType = "Forwarder"}
 			default {$ZoneType = "Unknown"}
 		}
 		
 		switch($zoneInfo.Notify) {
+			0 {$Notify = "DoNotNotify"}
+			1 {$Notify = "NotifyNameServers"}
 			2 {$Notify = "Notify"}
 			default {$Notify = "Unknown"}
 		}
 		
 		switch ($ZoneInfo.SecureSecondaries) {
+			0 {$SecureSecondaries = "TransferToAnyHost"}
+			1 {$SecureSecondaries = "TransferToNameServers"}
+			2 {$SecureSecondaries = "TransferToSecondaryServers"}
 			3 { $SecureSecondaries = "TransferToSecureServers"}
 			default {$SecureSecondaries = "Unknown"}
 		}
@@ -96,7 +106,7 @@ Function Get-WmiDNSResourceRecordSet  {
 		[string]
 		[Alias("RRType","Type")]
 		[ValidateSet("MG","X25","AFSDB","PTR","KEY","SRV","MD","MB","AAAA","ISDN","MINFO","RP","SIG","MF","A","WKS","WINSR","SOA","MX","WINS","ATMA","NS","NXT","RT","CNAME","TXT","HINFO","MR")]
-		$RecordType,
+		$RecordType = 'A',
 		
 		$Credential
 	)
@@ -104,7 +114,7 @@ Function Get-WmiDNSResourceRecordSet  {
 	BEGIN {
 		# https://learn-powershell.net/2013/08/03/quick-hits-set-the-default-property-display-in-powershell-on-custom-objects/
 		# http://blogs.microsoft.co.il/scriptfanatic/2012/04/13/custom-objects-default-display-in-powershell-30/
-		$defaultDisplaySet = 'HostName','RecordType','Timestamp','TimeToLive','RecordData'
+		$defaultDisplaySet = 'Name','HostName','RecordType','Timestamp','TimeToLive','RecordData'
 		$defaultDisplayPropertySet = New-Object System.Management.Automation.PSPropertySet('DefaultDisplayPropertySet',[string[]]$defaultDisplaySet)
 		$PSStandardMembers = [System.Management.Automation.PSMemberInfo[]]@($defaultDisplayPropertySet)
 	}
@@ -119,9 +129,9 @@ Function Get-WmiDNSResourceRecordSet  {
 		$param = @{}
 		ForEach ($Parameter in $PSBoundParameters.Keys) {
 			if ( $Parameter -eq "ZoneName" -or $Parameter -eq "RecordType") {continue}
-			$param.Add($Parameter,$PSBoundParameters.Item($Parameter))
+			[void]$param.Add($Parameter,$PSBoundParameters.Item($Parameter))
 		}
-		$param.Add("ScriptBlock",$ScriptBlock)
+		[void]$param.Add("ScriptBlock",$ScriptBlock)
 		
 		$ResourceRecordSet = Invoke-Command @param
 		
@@ -136,11 +146,12 @@ Function Get-WmiDNSResourceRecordSet  {
 			}
 			$OutputObject = [PSCustomObject] @{
 				DistinguishedName	=	""
+				Name				=	$ResourceRecord.OwnerName
 				HostName			=	$ResourceRecord.OwnerName.Split(".")[0]
 				RecordClass			=	$RecordClass
 				RecordData			=	$ResourceRecord.RecordData
 				RecordType			=	$RecordType
-				Timestamp			=	$ResourceRecord.TimeStamp
+				Timestamp			=	([datetime]"1.1.1601").AddHours($ResourceRecord.TimeStamp)
 				TimeToLive			=	$ResourceRecord.TTL
 				PSComputerName		=	$Computername
 			}
